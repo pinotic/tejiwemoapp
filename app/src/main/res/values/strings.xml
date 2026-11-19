@@ -1,0 +1,56 @@
+<resources>
+    <string name="app_name">RT 1/ RW 5 Dinoyo - Malang</string>
+    <string name="app_tagline">Pengalaman web native yang cepat &amp; mulus</string>
+
+    <!-- Navigation & Actions -->
+    <string name="nav_home">Beranda</string>
+    <string name="nav_back">Kembali</string>
+    <string name="nav_forward">Maju</string>
+    <string name="nav_reload">Muat Ulang</string>
+    <string name="nav_share">Bagikan</string>
+    <string name="nav_more">Lainnya</string>
+
+    <!-- Content Descriptions -->
+    <string name="cd_brand_logo">Logo Dinoyo</string>
+    <string name="cd_offline_illustration">Ilustrasi koneksi terputus</string>
+    <string name="cd_fullscreen_toggle">Ubah mode layar penuh</string>
+    <string name="cd_close_sheet">Tutup panel menu</string>
+    <string name="cd_secure_connection">Koneksi terenkripsi HTTPS</string>
+
+    <!-- Status & Loading -->
+    <string name="loading_title">Menyiapkan Dinoyo</string>
+    <string name="loading_subtitle">Menghubungkan konten secara mulus…</string>
+    <string name="offline_banner_text">Tidak ada koneksi internet. Menampilkan konten tersimpan.</string>
+    <string name="fullscreen_hint">Mode Imersif</string>
+    <string name="show_controls_label">Tampilkan Navigasi</string>
+
+    <!-- Error / Offline State -->
+    <string name="error_offline_title">Koneksi Terputus</string>
+    <string name="error_offline_description">Perangkat sedang offline. Periksa Wi-Fi atau data seluler Anda lalu coba muat ulang.</string>
+    <string name="error_load_title">Halaman Tidak Dapat Dimuat</string>
+    <string name="error_load_description">Terjadi gangguan saat menghubungkan ke server Dinoyo. Silakan coba lagi beberapa saat lagi.</string>
+    <string name="action_retry">Coba Lagi</string>
+    <string name="action_open_browser">Buka di Browser</string>
+
+    <!-- More Options Sheet -->
+    <string name="sheet_title">Kontrol &amp; Integrasi</string>
+    <string name="option_open_in_browser">Buka di Browser Eksternal</string>
+    <string name="option_open_in_browser_desc">Lihat halaman aktif menggunakan aplikasi peramban bawaan</string>
+    <string name="option_copy_link">Salin Tautan Halaman</string>
+    <string name="option_copy_link_desc">Salin URL aktif ke papan klip</string>
+    <string name="option_desktop_mode">Mode Situs Desktop</string>
+    <string name="option_desktop_mode_desc">Tampilkan tata letak versi desktop di layar ini</string>
+    <string name="option_immersive_mode">Mode Layar Penuh</string>
+    <string name="option_immersive_mode_desc">Sembunyikan bilah navigasi bawah untuk fokus maksimal</string>
+    <string name="option_clear_cache">Bersihkan Cache Web</string>
+    <string name="option_clear_cache_desc">Muat ulang aset terbaru dari server Dinoyo</string>
+    <string name="version_label">Dinoyo Native Web • dinoyo.vercel.app</string>
+
+    <!-- Feedback Messages -->
+    <string name="msg_link_copied">Tautan disalin ke papan klip</string>
+    <string name="msg_cache_cleared">Cache dibersihkan, memuat ulang halaman…</string>
+    <string name="msg_no_external_app">Tidak ada aplikasi yang mendukung tautan ini</string>
+    <string name="msg_share_chooser">Bagikan tautan Dinoyo</string>
+    <string name="msg_download_started">Membuka unduhan di browser…</string>
+    <string name="msg_back_exit_hint">Tekan kembali sekali lagi untuk keluar</string>
+</resources>

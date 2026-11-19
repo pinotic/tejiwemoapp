@@ -1,0 +1,8 @@
+{
+  "name": "RT 1/ RW 5 Dinoyo - Malang",
+  "description": "Aplikasi Android native yang responsif dan terintegrasi dengan WebView untuk menampilkan konten dinoyo.vercel.app secara mulus.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
