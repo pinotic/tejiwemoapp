@@ -41,20 +41,20 @@ class DinoyoViewModelTest {
   }
 
   @Test
-  fun `initial state starts loading Dinoyo home URL`() = runTest {
+  fun `initial state starts directly ready for Dinoyo home URL`() = runTest {
     val viewModel = DinoyoViewModel(FakeNetworkMonitor(initialOnline = true))
     val state = viewModel.uiState.value
     assertEquals(DinoyoConfig.HOME_URL, state.currentUrl)
-    assertEquals(WebContentState.InitialLoading, state.contentState)
+    assertEquals(WebContentState.Ready, state.contentState)
     assertTrue(state.isOnline)
   }
 
   @Test
-  fun `progress and page finish transition content to Ready`() = runTest {
+  fun `progress and page finish update navigation state cleanly`() = runTest {
     val viewModel = DinoyoViewModel(FakeNetworkMonitor(initialOnline = true))
     viewModel.onProgressChanged(90)
     assertTrue(viewModel.uiState.value.contentState is WebContentState.Ready)
-    assertTrue(viewModel.uiState.value.hasLoadedOnce)
+    assertTrue(viewModel.uiState.value.isLoading)
 
     viewModel.onPageFinished(
       url = "https://dinoyo.vercel.app/explore",
@@ -68,6 +68,7 @@ class DinoyoViewModelTest {
     assertTrue(state.canGoBack)
     assertFalse(state.canGoForward)
     assertFalse(state.isLoading)
+    assertTrue(state.hasLoadedOnce)
   }
 
   @Test
@@ -83,6 +84,6 @@ class DinoyoViewModelTest {
     networkMonitor.flow.value = true
     advanceUntilIdle()
     assertTrue(viewModel.uiState.value.isOnline)
-    assertTrue(viewModel.uiState.value.contentState is WebContentState.InitialLoading)
+    assertTrue(viewModel.uiState.value.contentState is WebContentState.Ready)
   }
 }

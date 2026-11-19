@@ -5,13 +5,15 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
-import android.os.Message
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.DownloadListener
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -25,11 +27,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -50,6 +50,11 @@ private val EXTERNAL_APP_HOSTS = setOf(
   "play.google.com",
   "maps.google.com",
 )
+
+private class WebViewHolder {
+  var instance: WebView? = null
+  var pendingFileCallback: ValueCallback<Array<Uri>>? = null
+}
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
@@ -77,14 +82,13 @@ fun DinoyoWebView(
   val currentOnShowMessage by rememberUpdatedState(onShowMessage)
 
   val savedWebViewState = rememberSaveable { Bundle() }
-  var webViewRef by remember { mutableStateOf<WebView?>(null) }
-  var pendingFileCallback by remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
+  val holder = remember { WebViewHolder() }
 
   val fileChooserLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.OpenMultipleDocuments(),
   ) { uris ->
-    val callback = pendingFileCallback
-    pendingFileCallback = null
+    val callback = holder.pendingFileCallback
+    holder.pendingFileCallback = null
     if (uris.isEmpty()) {
       callback?.onReceiveValue(null)
     } else {
@@ -92,10 +96,9 @@ fun DinoyoWebView(
     }
   }
 
-  // Handle commands from ViewModel
-  LaunchedEffect(commands, webViewRef) {
-    val view = webViewRef ?: return@LaunchedEffect
+  LaunchedEffect(commands) {
     commands.collect { command ->
+      val view = holder.instance ?: return@collect
       when (command) {
         WebViewCommand.Reload -> view.reload()
         WebViewCommand.GoBack -> if (view.canGoBack()) view.goBack()
@@ -104,10 +107,9 @@ fun DinoyoWebView(
     }
   }
 
-  // Pause/resume WebView with lifecycle and save state on dispose
-  DisposableEffect(lifecycleOwner, webViewRef) {
+  DisposableEffect(lifecycleOwner) {
     val observer = LifecycleEventObserver { _, event ->
-      val view = webViewRef ?: return@LifecycleEventObserver
+      val view = holder.instance ?: return@LifecycleEventObserver
       when (event) {
         Lifecycle.Event.ON_RESUME -> view.onResume()
         Lifecycle.Event.ON_PAUSE -> view.onPause()
@@ -117,12 +119,12 @@ fun DinoyoWebView(
     lifecycleOwner.lifecycle.addObserver(observer)
     onDispose {
       lifecycleOwner.lifecycle.removeObserver(observer)
-      webViewRef?.let { view ->
+      holder.instance?.let { view ->
         view.saveState(savedWebViewState)
         view.stopLoading()
       }
-      pendingFileCallback?.onReceiveValue(null)
-      pendingFileCallback = null
+      holder.pendingFileCallback?.onReceiveValue(null)
+      holder.pendingFileCallback = null
     }
   }
 
@@ -134,6 +136,7 @@ fun DinoyoWebView(
           ViewGroup.LayoutParams.MATCH_PARENT,
           ViewGroup.LayoutParams.MATCH_PARENT,
         )
+        setBackgroundColor(Color.parseColor("#F8F9FA"))
         overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
         isVerticalScrollBarEnabled = true
         isHorizontalScrollBarEnabled = false
@@ -209,7 +212,6 @@ fun DinoyoWebView(
             super.onReceivedError(view, request, error)
             if (request?.isForMainFrame == true) {
               val code = error?.errorCode ?: -1
-              // Ignore user/navigation-aborted cancellations
               if (code != ERROR_UNSUPPORTED_SCHEME && code != -1) {
                 currentOnMainFrameError(
                   code,
@@ -217,6 +219,17 @@ fun DinoyoWebView(
                 )
               }
             }
+          }
+
+          override fun onRenderProcessGone(
+            view: WebView?,
+            detail: RenderProcessGoneDetail?,
+          ): Boolean {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+              view?.reload()
+              return true
+            }
+            return super.onRenderProcessGone(view, detail)
           }
         }
 
@@ -237,8 +250,8 @@ fun DinoyoWebView(
             fileChooserParams: FileChooserParams?,
           ): Boolean {
             if (filePathCallback == null) return false
-            pendingFileCallback?.onReceiveValue(null)
-            pendingFileCallback = filePathCallback
+            holder.pendingFileCallback?.onReceiveValue(null)
+            holder.pendingFileCallback = filePathCallback
 
             val mimeTypes = fileChooserParams?.acceptTypes
               ?.filter { it.isNotBlank() }
@@ -250,49 +263,11 @@ fun DinoyoWebView(
               fileChooserLauncher.launch(mimeTypes)
               true
             } catch (_: ActivityNotFoundException) {
-              pendingFileCallback = null
+              holder.pendingFileCallback = null
               filePathCallback.onReceiveValue(null)
               currentOnShowMessage(ctx.getString(R.string.msg_no_external_app))
               false
             }
-          }
-
-          override fun onCreateWindow(
-            view: WebView?,
-            isDialog: Boolean,
-            isUserGesture: Boolean,
-            resultMsg: Message?,
-          ): Boolean {
-            val mainView = view ?: return false
-            val transport = resultMsg?.obj as? WebView.WebViewTransport ?: return false
-
-            val tempWebView = WebView(ctx).apply {
-              webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(
-                  temp: WebView?,
-                  request: WebResourceRequest?,
-                ): Boolean {
-                  val targetUri = request?.url
-                  if (targetUri != null) {
-                    val handledExternally = handleNavigationUri(
-                      context = ctx,
-                      uri = targetUri,
-                      onNoAppFound = {
-                        currentOnShowMessage(ctx.getString(R.string.msg_no_external_app))
-                      },
-                    )
-                    if (!handledExternally) {
-                      mainView.loadUrl(targetUri.toString())
-                    }
-                  }
-                  temp?.destroy()
-                  return true
-                }
-              }
-            }
-            transport.webView = tempWebView
-            resultMsg.sendToTarget()
-            return true
           }
         }
 
@@ -302,13 +277,11 @@ fun DinoyoWebView(
           restoreState(savedWebViewState)
         }
 
-        webViewRef = this
+        holder.instance = this
       }
     },
     update = { view ->
-      if (webViewRef !== view) {
-        webViewRef = view
-      }
+      holder.instance = view
     },
   )
 }
@@ -323,8 +296,8 @@ private fun configureWebSettings(settings: WebSettings) {
   settings.setSupportZoom(true)
   settings.builtInZoomControls = true
   settings.displayZoomControls = false
-  settings.setSupportMultipleWindows(true)
-  settings.javaScriptCanOpenWindowsAutomatically = true
+  settings.setSupportMultipleWindows(false)
+  settings.javaScriptCanOpenWindowsAutomatically = false
   settings.mediaPlaybackRequiresUserGesture = false
   settings.cacheMode = WebSettings.LOAD_DEFAULT
   settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
@@ -341,14 +314,9 @@ private fun handleNavigationUri(
   val host = uri.host?.lowercase().orEmpty()
 
   if (scheme == "http" || scheme == "https") {
-    // Allow Dinoyo and standard HTTPS web flows (including OAuth/CDN) inside WebView,
-    // while routing known messaging/store deep links to native apps.
     if (host in EXTERNAL_APP_HOSTS || host.endsWith(".wa.me")) {
       openInExternalBrowser(context, uri.toString(), onNoAppFound)
       return true
-    }
-    if (scheme == "http" && host == DinoyoConfig.HOME_HOST) {
-      return false
     }
     return false
   }
@@ -377,7 +345,6 @@ private fun handleNavigationUri(
     }
   }
 
-  // tel:, mailto:, smsto:, geo:, whatsapp:, etc.
   return try {
     val action = if (scheme == "tel") Intent.ACTION_DIAL else Intent.ACTION_VIEW
     val intent = Intent(action, uri)

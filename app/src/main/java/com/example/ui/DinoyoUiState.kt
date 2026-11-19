@@ -6,8 +6,6 @@ object DinoyoConfig {
 }
 
 sealed interface WebContentState {
-  data object InitialLoading : WebContentState
-
   data object Ready : WebContentState
 
   data class Error(
@@ -26,7 +24,7 @@ data class DinoyoUiState(
   val canGoForward: Boolean = false,
   val isOnline: Boolean = true,
   val hasLoadedOnce: Boolean = false,
-  val contentState: WebContentState = WebContentState.InitialLoading,
+  val contentState: WebContentState = WebContentState.Ready,
 )
 
 sealed interface WebViewCommand {

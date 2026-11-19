@@ -23,8 +23,7 @@ class AndroidNetworkMonitor(context: Context) : NetworkConnectivityObserver {
     val cm = connectivityManager ?: return true
     val activeNetwork = cm.activeNetwork ?: return false
     val capabilities = cm.getNetworkCapabilities(activeNetwork) ?: return false
-    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-      capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
   }
 
   override val isOnline: Flow<Boolean> = callbackFlow {
@@ -39,17 +38,14 @@ class AndroidNetworkMonitor(context: Context) : NetworkConnectivityObserver {
 
     val callback = object : ConnectivityManager.NetworkCallback() {
       override fun onAvailable(network: Network) {
-        trySend(currentOnlineState())
+        trySend(true)
       }
 
       override fun onCapabilitiesChanged(
         network: Network,
         networkCapabilities: NetworkCapabilities,
       ) {
-        val hasInternet =
-          networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-            networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-        trySend(hasInternet)
+        trySend(networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET))
       }
 
       override fun onLost(network: Network) {

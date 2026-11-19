@@ -42,12 +42,9 @@ class DinoyoViewModel(
 
   fun onProgressChanged(progress: Int) {
     _uiState.update { state ->
-      val shouldReveal = state.contentState is WebContentState.InitialLoading && progress >= 85
       state.copy(
         loadProgress = progress.coerceIn(0, 100),
         isLoading = progress < 100,
-        hasLoadedOnce = state.hasLoadedOnce || shouldReveal,
-        contentState = if (shouldReveal) WebContentState.Ready else state.contentState,
       )
     }
   }
@@ -57,11 +54,7 @@ class DinoyoViewModel(
       state.copy(
         currentUrl = url,
         isLoading = true,
-        contentState = if (state.contentState is WebContentState.Error) {
-          if (state.hasLoadedOnce) WebContentState.Ready else WebContentState.InitialLoading
-        } else {
-          state.contentState
-        },
+        contentState = WebContentState.Ready,
       )
     }
   }
@@ -74,9 +67,6 @@ class DinoyoViewModel(
   ) {
     _uiState.update { state ->
       val cleanTitle = title?.takeIf { it.isNotBlank() && !it.startsWith("http") } ?: state.pageTitle
-      val nextContentState =
-        if (state.contentState is WebContentState.Error) state.contentState
-        else WebContentState.Ready
       state.copy(
         currentUrl = url.ifBlank { state.currentUrl },
         pageTitle = cleanTitle,
@@ -84,8 +74,7 @@ class DinoyoViewModel(
         isLoading = false,
         canGoBack = canGoBack,
         canGoForward = canGoForward,
-        hasLoadedOnce = state.hasLoadedOnce || nextContentState is WebContentState.Ready,
-        contentState = nextContentState,
+        hasLoadedOnce = state.hasLoadedOnce || state.contentState is WebContentState.Ready,
       )
     }
   }
@@ -136,7 +125,7 @@ class DinoyoViewModel(
       state.copy(
         isOnline = currentOnline,
         isLoading = true,
-        contentState = if (state.hasLoadedOnce) WebContentState.Ready else WebContentState.InitialLoading,
+        contentState = WebContentState.Ready,
       )
     }
     _commands.tryEmit(WebViewCommand.Reload)
