@@ -25,9 +25,6 @@ data class DinoyoUiState(
   val canGoBack: Boolean = false,
   val canGoForward: Boolean = false,
   val isOnline: Boolean = true,
-  val isDesktopMode: Boolean = false,
-  val isImmersiveMode: Boolean = false,
-  val isMoreSheetOpen: Boolean = false,
   val hasLoadedOnce: Boolean = false,
   val contentState: WebContentState = WebContentState.InitialLoading,
 )
@@ -35,7 +32,5 @@ data class DinoyoUiState(
 sealed interface WebViewCommand {
   data object Reload : WebViewCommand
   data object GoBack : WebViewCommand
-  data object GoForward : WebViewCommand
   data class LoadUrl(val url: String) : WebViewCommand
-  data object ClearCacheAndReload : WebViewCommand
 }

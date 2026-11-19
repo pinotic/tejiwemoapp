@@ -85,17 +85,4 @@ class DinoyoViewModelTest {
     assertTrue(viewModel.uiState.value.isOnline)
     assertTrue(viewModel.uiState.value.contentState is WebContentState.InitialLoading)
   }
-
-  @Test
-  fun `desktop and immersive toggles update state cleanly`() = runTest {
-    val viewModel = DinoyoViewModel(FakeNetworkMonitor(initialOnline = true))
-    assertFalse(viewModel.uiState.value.isDesktopMode)
-    assertFalse(viewModel.uiState.value.isImmersiveMode)
-
-    viewModel.toggleDesktopMode()
-    assertTrue(viewModel.uiState.value.isDesktopMode)
-
-    viewModel.toggleImmersiveMode()
-    assertTrue(viewModel.uiState.value.isImmersiveMode)
-  }
 }

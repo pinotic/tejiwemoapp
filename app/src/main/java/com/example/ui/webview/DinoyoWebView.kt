@@ -41,9 +41,6 @@ import com.example.ui.DinoyoConfig
 import com.example.ui.WebViewCommand
 import kotlinx.coroutines.flow.SharedFlow
 
-private const val DESKTOP_USER_AGENT =
-  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-
 private val EXTERNAL_APP_HOSTS = setOf(
   "wa.me",
   "api.whatsapp.com",
@@ -58,7 +55,6 @@ private val EXTERNAL_APP_HOSTS = setOf(
 @Composable
 fun DinoyoWebView(
   initialUrl: String,
-  isDesktopMode: Boolean,
   commands: SharedFlow<WebViewCommand>,
   onProgressChanged: (Int) -> Unit,
   onPageStarted: (String) -> Unit,
@@ -83,8 +79,6 @@ fun DinoyoWebView(
   val savedWebViewState = rememberSaveable { Bundle() }
   var webViewRef by remember { mutableStateOf<WebView?>(null) }
   var pendingFileCallback by remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
-  var defaultUserAgent by remember { mutableStateOf<String?>(null) }
-  var appliedDesktopMode by remember { mutableStateOf(isDesktopMode) }
 
   val fileChooserLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.OpenMultipleDocuments(),
@@ -105,24 +99,8 @@ fun DinoyoWebView(
       when (command) {
         WebViewCommand.Reload -> view.reload()
         WebViewCommand.GoBack -> if (view.canGoBack()) view.goBack()
-        WebViewCommand.GoForward -> if (view.canGoForward()) view.goForward()
         is WebViewCommand.LoadUrl -> view.loadUrl(command.url)
-        WebViewCommand.ClearCacheAndReload -> {
-          view.clearCache(true)
-          view.reload()
-        }
       }
-    }
-  }
-
-  // Apply desktop mode changes dynamically
-  LaunchedEffect(isDesktopMode, webViewRef) {
-    val view = webViewRef ?: return@LaunchedEffect
-    if (appliedDesktopMode != isDesktopMode) {
-      appliedDesktopMode = isDesktopMode
-      view.settings.userAgentString = if (isDesktopMode) DESKTOP_USER_AGENT else defaultUserAgent
-      view.settings.useWideViewPort = true
-      view.settings.loadWithOverviewMode = true
     }
   }
 
@@ -161,8 +139,7 @@ fun DinoyoWebView(
         isHorizontalScrollBarEnabled = false
         scrollBarStyle = View.SCROLLBARS_INSIDE_OVERLAY
 
-        defaultUserAgent = settings.userAgentString
-        configureWebSettings(settings, isDesktopMode, defaultUserAgent)
+        configureWebSettings(settings)
 
         val currentWebView = this
         CookieManager.getInstance().apply {
@@ -337,11 +314,7 @@ fun DinoyoWebView(
 }
 
 @SuppressLint("SetJavaScriptEnabled")
-private fun configureWebSettings(
-  settings: WebSettings,
-  isDesktopMode: Boolean,
-  defaultUserAgent: String?,
-) {
+private fun configureWebSettings(settings: WebSettings) {
   settings.javaScriptEnabled = true
   settings.domStorageEnabled = true
   settings.databaseEnabled = true
@@ -357,7 +330,6 @@ private fun configureWebSettings(
   settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
   settings.allowFileAccess = false
   settings.allowContentAccess = true
-  settings.userAgentString = if (isDesktopMode) DESKTOP_USER_AGENT else defaultUserAgent
 }
 
 private fun handleNavigationUri(

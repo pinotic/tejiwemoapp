@@ -33,7 +33,6 @@ class DinoyoViewModel(
         _uiState.update { state ->
           state.copy(isOnline = online)
         }
-        // Auto-recover smoothly if the user comes back online while on an offline error screen
         if (online && wasOfflineOnError) {
           retryLoad()
         }
@@ -127,32 +126,8 @@ class DinoyoViewModel(
     }
   }
 
-  fun navigateHome() {
-    _uiState.update { state ->
-      state.copy(
-        isMoreSheetOpen = false,
-        contentState = if (state.hasLoadedOnce) WebContentState.Ready else WebContentState.InitialLoading,
-      )
-    }
-    _commands.tryEmit(WebViewCommand.LoadUrl(DinoyoConfig.HOME_URL))
-  }
-
   fun goBack() {
     _commands.tryEmit(WebViewCommand.GoBack)
-  }
-
-  fun goForward() {
-    _commands.tryEmit(WebViewCommand.GoForward)
-  }
-
-  fun reload() {
-    _uiState.update { state ->
-      state.copy(
-        isLoading = true,
-        contentState = if (state.hasLoadedOnce) WebContentState.Ready else WebContentState.InitialLoading,
-      )
-    }
-    _commands.tryEmit(WebViewCommand.Reload)
   }
 
   fun retryLoad() {
@@ -165,24 +140,6 @@ class DinoyoViewModel(
       )
     }
     _commands.tryEmit(WebViewCommand.Reload)
-  }
-
-  fun toggleDesktopMode() {
-    _uiState.update { it.copy(isDesktopMode = !it.isDesktopMode, isMoreSheetOpen = false) }
-    _commands.tryEmit(WebViewCommand.Reload)
-  }
-
-  fun toggleImmersiveMode() {
-    _uiState.update { it.copy(isImmersiveMode = !it.isImmersiveMode, isMoreSheetOpen = false) }
-  }
-
-  fun setMoreSheetOpen(open: Boolean) {
-    _uiState.update { it.copy(isMoreSheetOpen = open) }
-  }
-
-  fun clearCacheAndReload() {
-    _uiState.update { it.copy(isMoreSheetOpen = false, isLoading = true) }
-    _commands.tryEmit(WebViewCommand.ClearCacheAndReload)
   }
 
   class Factory(
