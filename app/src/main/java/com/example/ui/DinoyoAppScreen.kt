@@ -570,13 +570,15 @@ private fun DinoyoNavigationRail(
     ),
     header = {
       Image(
-        painter = painterResource(id = R.drawable.img_dinoyo_icon_foreground),
+        painter = painterResource(id = R.drawable.img_dinoyo_web_logo),
         contentDescription = stringResource(R.string.cd_brand_logo),
-        contentScale = ContentScale.Crop,
+        contentScale = ContentScale.Fit,
         modifier = Modifier
           .padding(top = 8.dp, bottom = 12.dp)
           .size(44.dp)
-          .clip(RoundedCornerShape(14.dp)),
+          .clip(RoundedCornerShape(14.dp))
+          .background(MaterialTheme.colorScheme.surface)
+          .padding(4.dp),
       )
     },
     modifier = Modifier.testTag("dinoyo_navigation_rail"),

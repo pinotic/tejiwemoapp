@@ -109,12 +109,14 @@ fun DinoyoInitialLoadingOverlay(progress: Int) {
           .padding(8.dp),
       ) {
         Image(
-          painter = painterResource(id = R.drawable.img_dinoyo_icon_foreground),
+          painter = painterResource(id = R.drawable.img_dinoyo_web_logo),
           contentDescription = stringResource(R.string.cd_brand_logo),
-          contentScale = ContentScale.Crop,
+          contentScale = ContentScale.Fit,
           modifier = Modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(24.dp)),
+            .clip(RoundedCornerShape(24.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f))
+            .padding(10.dp),
         )
       }
 
@@ -293,12 +295,14 @@ fun DinoyoMoreSheetContent(
         modifier = Modifier.padding(16.dp),
       ) {
         Image(
-          painter = painterResource(id = R.drawable.img_dinoyo_icon_foreground),
+          painter = painterResource(id = R.drawable.img_dinoyo_web_logo),
           contentDescription = stringResource(R.string.cd_brand_logo),
-          contentScale = ContentScale.Crop,
+          contentScale = ContentScale.Fit,
           modifier = Modifier
             .size(44.dp)
-            .clip(RoundedCornerShape(12.dp)),
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(4.dp),
         )
         Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
