@@ -1,6 +1,11 @@
 package com.example.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -16,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -26,8 +32,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
+import com.example.fcm.DinoyoNotificationHelper
 import com.example.ui.webview.DinoyoWebView
 import com.example.ui.webview.openInExternalBrowser
 import kotlinx.coroutines.launch
@@ -37,6 +45,7 @@ private val DinoyoWebSurfaceColor = Color(0xFFF8F9FA)
 @Composable
 fun DinoyoAppScreen(
   viewModel: DinoyoViewModel,
+  initialUrl: String,
   onExitApp: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
@@ -45,6 +54,30 @@ fun DinoyoAppScreen(
   val snackbarHostState = remember { SnackbarHostState() }
   val scope = rememberCoroutineScope()
   var lastBackPressTime by remember { mutableLongStateOf(0L) }
+
+  val notificationPermissionLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.RequestPermission(),
+  ) { granted ->
+    if (granted) {
+      DinoyoNotificationHelper.syncFcmToken(context)
+    }
+  }
+
+  LaunchedEffect(Unit) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      val granted = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.POST_NOTIFICATIONS,
+      ) == PackageManager.PERMISSION_GRANTED
+      if (granted) {
+        DinoyoNotificationHelper.syncFcmToken(context)
+      } else {
+        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+      }
+    } else {
+      DinoyoNotificationHelper.syncFcmToken(context)
+    }
+  }
 
   BackHandler(enabled = uiState.canGoBack) {
     viewModel.goBack()
@@ -109,7 +142,7 @@ fun DinoyoAppScreen(
         )
       } else {
         DinoyoWebView(
-          initialUrl = DinoyoConfig.HOME_URL,
+          initialUrl = initialUrl,
           commands = viewModel.commands,
           onProgressChanged = viewModel::onProgressChanged,
           onPageStarted = viewModel::onPageStarted,

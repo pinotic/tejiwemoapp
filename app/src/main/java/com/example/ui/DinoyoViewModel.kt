@@ -119,6 +119,17 @@ class DinoyoViewModel(
     _commands.tryEmit(WebViewCommand.GoBack)
   }
 
+  fun openNotificationUrl(url: String) {
+    if (url.isBlank()) return
+    _uiState.update { state ->
+      state.copy(
+        currentUrl = url,
+        contentState = WebContentState.Ready,
+      )
+    }
+    _commands.tryEmit(WebViewCommand.LoadUrl(url))
+  }
+
   fun retryLoad() {
     val currentOnline = networkMonitor.currentOnlineState()
     _uiState.update { state ->

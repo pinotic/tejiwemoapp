@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "182014578340",
+    "project_id": "tejiwemo",
+    "storage_bucket": "tejiwemo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:182014578340:android:3c817f0d6d63e5444fe031",
+        "android_client_info": {
+          "package_name": "com.aistudio.dinoyo.vrmkqp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvN9huk2mJXIzSys0UKPS9Aj7IfpgOrfE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

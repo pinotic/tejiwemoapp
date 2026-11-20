@@ -53,4 +53,9 @@
     <string name="msg_share_chooser">Bagikan tautan Dinoyo</string>
     <string name="msg_download_started">Membuka unduhan di browser…</string>
     <string name="msg_back_exit_hint">Tekan kembali sekali lagi untuk keluar</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_id" translatable="false">dinoyo_updates</string>
+    <string name="notification_channel_name">Notifikasi Warga Dinoyo</string>
+    <string name="notification_channel_desc">Pemberitahuan berita, kas, usulan, dan agenda warga RT 01 / RW 05</string>
 </resources>
