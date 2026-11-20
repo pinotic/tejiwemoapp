@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -33,6 +34,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.fcm.DinoyoNotificationHelper
@@ -51,15 +55,23 @@ fun DinoyoAppScreen(
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val context = LocalContext.current
+  val lifecycleOwner = LocalLifecycleOwner.current
   val snackbarHostState = remember { SnackbarHostState() }
   val scope = rememberCoroutineScope()
   var lastBackPressTime by remember { mutableLongStateOf(0L) }
+
+  val showSyncError: (String) -> Unit = { errorMsg ->
+    scope.launch {
+      snackbarHostState.currentSnackbarData?.dismiss()
+      snackbarHostState.showSnackbar(errorMsg)
+    }
+  }
 
   val notificationPermissionLauncher = rememberLauncherForActivityResult(
     contract = ActivityResultContracts.RequestPermission(),
   ) { granted ->
     if (granted) {
-      DinoyoNotificationHelper.syncFcmToken(context)
+      DinoyoNotificationHelper.syncFcmToken(context, onSyncError = showSyncError)
     }
   }
 
@@ -70,12 +82,44 @@ fun DinoyoAppScreen(
         Manifest.permission.POST_NOTIFICATIONS,
       ) == PackageManager.PERMISSION_GRANTED
       if (granted) {
-        DinoyoNotificationHelper.syncFcmToken(context)
+        DinoyoNotificationHelper.syncFcmToken(context, onSyncError = showSyncError)
       } else {
         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
       }
     } else {
-      DinoyoNotificationHelper.syncFcmToken(context)
+      DinoyoNotificationHelper.syncFcmToken(context, onSyncError = showSyncError)
+    }
+  }
+
+  LaunchedEffect(uiState.isOnline) {
+    if (uiState.isOnline) {
+      val hasPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        ContextCompat.checkSelfPermission(
+          context,
+          Manifest.permission.POST_NOTIFICATIONS,
+        ) == PackageManager.PERMISSION_GRANTED
+      if (hasPermission) {
+        DinoyoNotificationHelper.syncFcmToken(context)
+      }
+    }
+  }
+
+  DisposableEffect(lifecycleOwner) {
+    val observer = LifecycleEventObserver { _, event ->
+      if (event == Lifecycle.Event.ON_RESUME) {
+        val hasPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+          ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS,
+          ) == PackageManager.PERMISSION_GRANTED
+        if (hasPermission) {
+          DinoyoNotificationHelper.syncFcmToken(context)
+        }
+      }
+    }
+    lifecycleOwner.lifecycle.addObserver(observer)
+    onDispose {
+      lifecycleOwner.lifecycle.removeObserver(observer)
     }
   }
 

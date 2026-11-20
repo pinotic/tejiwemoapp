@@ -20,6 +20,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -32,6 +33,8 @@ object DinoyoNotificationHelper {
   const val EXTRA_TARGET_URL = "extra_target_url"
 
   private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+  private val isSyncing = AtomicBoolean(false)
+  @Volatile private var lastSyncedToken: String? = null
 
   fun createNotificationChannel(context: Context) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -51,32 +54,57 @@ object DinoyoNotificationHelper {
     }
   }
 
-  fun syncFcmToken(context: Context) {
+  fun syncFcmToken(
+    context: Context,
+    force: Boolean = false,
+    onSyncError: ((String) -> Unit)? = null,
+  ) {
     val appContext = context.applicationContext
     if (FirebaseApp.getApps(appContext).isEmpty()) {
-      Log.w(
-        TAG,
-        "FirebaseApp belum terinisialisasi. Tambahkan google-services.json dari project Firebase tejiwemo ke folder app/."
-      )
+      val msg = "Konfigurasi Firebase (google-services.json) belum aktif di APK ini."
+      Log.w(TAG, msg)
+      onSyncError?.invoke(msg)
       return
     }
     FirebaseMessaging.getInstance().token
       .addOnSuccessListener { token ->
         if (!token.isNullOrBlank()) {
-          registerTokenWithServer(token)
+          if (force || token != lastSyncedToken) {
+            registerTokenWithServer(token = token, onSyncError = onSyncError)
+          }
+        } else {
+          onSyncError?.invoke("Token FCM perangkat kosong.")
         }
       }
       .addOnFailureListener { error ->
         Log.e(TAG, "Gagal mengambil token FCM Android", error)
+        onSyncError?.invoke("Gagal mengambil token FCM: ${error.localizedMessage ?: "Play Services"}")
       }
   }
 
-  fun registerTokenWithServer(token: String) {
+  fun registerTokenWithServer(
+    token: String,
+    onSyncError: ((String) -> Unit)? = null,
+  ) {
+    if (!isSyncing.compareAndSet(false, true)) return
     ioScope.launch {
-      // Coba daftarkan dengan platform "android", lalu fallback ke "web" jika API server hanya menerima "web"
-      val status = postSubscribePayload(token = token, platform = "android")
-      if (status in 400..499) {
-        postSubscribePayload(token = token, platform = "web")
+      try {
+        // Coba daftarkan dengan platform "android", lalu fallback ke "web" jika API server hanya menerima "web"
+        var status = postSubscribePayload(token = token, platform = "android")
+        if (status in 400..499) {
+          status = postSubscribePayload(token = token, platform = "web")
+        }
+        if (status in 200..299) {
+          lastSyncedToken = token
+          Log.i(TAG, "Token FCM Android berhasil terdaftar ke server (HTTP $status)")
+        } else {
+          Log.w(TAG, "Pendaftaran token FCM belum berhasil (HTTP $status)")
+          if (status >= 400) {
+            onSyncError?.invoke("Gagal mendaftarkan notifikasi ke server (HTTP $status).")
+          }
+        }
+      } finally {
+        isSyncing.set(false)
       }
     }
   }
@@ -101,6 +129,10 @@ object DinoyoNotificationHelper {
         writer.flush()
       }
       val code = conn.responseCode
+      runCatching {
+        val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+        stream?.bufferedReader()?.use { it.readText() }
+      }
       conn.disconnect()
       code
     }.getOrElse { error ->
